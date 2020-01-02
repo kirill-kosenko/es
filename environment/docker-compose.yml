@@ -1,0 +1,123 @@
+version: '3'
+
+services:
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: replication_zookeeper
+    networks:
+      - es-net
+    ports:
+      - 12181:2181
+      - 12888:2888
+      - 13888:3888
+
+  kafka:
+    image: wurstmeister/kafka:2.11-1.1.0
+    container_name: replication_kafka
+    networks:
+      - es-net
+    ports:
+      - 19092:9092
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: $HOST_IP
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+
+  postgres_1:
+    image: debezium/postgres:9.6
+    container_name: replication_postgres_1
+    networks:
+      - es-net
+    ports:
+      - 15432:5432
+    environment:
+     - POSTGRES_PASSWORD=secret
+
+
+  postgres_2:
+    image: debezium/postgres:9.6
+    container_name: replication_postgres_2
+    networks:
+      - es-net
+    ports:
+      - 25432:5432
+    environment:
+     - POSTGRES_PASSWORD=secret
+
+  connect_1:
+    image: tegr/debezium-connect
+    container_name: replication_connect_1
+    ports:
+     - 18083:8083
+     - 15005:5005
+    links:
+    links:
+     - kafka
+     - postgres_1
+    environment:
+     - BOOTSTRAP_SERVERS=kafka:9092
+     - GROUP_ID=1
+     - CONFIG_STORAGE_TOPIC=connect_1_configs
+     - OFFSET_STORAGE_TOPIC=connect_1_offsets
+#     - KAFKA_DEBUG=true
+#     - DEBUG_SUSPEND_FLAG=n
+    networks:
+     - es-net
+#    volumes:
+#      - $DEBEZIUM_REPLICATION_HOME/docker/config/:/kafka/libs/
+
+  connect_2:
+    image: tegr/debezium-connect
+    container_name: replication_connect_2
+    ports:
+     - 28083:8083
+     - 25005:5005
+    links:
+     - kafka
+     - postgres_2
+    environment:
+     - BOOTSTRAP_SERVERS=kafka:9092
+     - GROUP_ID=2
+     - CONFIG_STORAGE_TOPIC=connect_2_configs
+     - OFFSET_STORAGE_TOPIC=connect_2_offsets
+#     - KAFKA_DEBUG=true
+#     - DEBUG_SUSPEND_FLAG=n
+    networks:
+      - es-net
+
+
+  postgres-client:
+    image: mdillon/postgis:9.6
+    container_name: replication_postgres-client
+    networks:
+      - es-net
+    environment:
+      - PGPASSWORD=secret
+    command: ls -l /tmp
+
+
+  loads:
+    image: tegr/loads:latest
+    container_name: loads
+    networks:
+      - es-net
+    ports:
+      - 18080:8080
+      - 17000:7000
+
+  companies:
+    image: tegr/companies-service:latest
+    container_name: companies
+    networks:
+      - es-net
+    ports:
+      - 28080:8080
+      - 27000:7000
+
+## network configuration
+networks:
+  es-net:
+    driver: bridge
