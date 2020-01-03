@@ -96,7 +96,7 @@ public class OutgoingFilter<R extends ConnectRecord<R>> implements Transformatio
 		rerouteTopicReplacement = config.getString(REROUTE_TOPIC_REPLACEMENT);
 		rerouteTopicPattern = Pattern.compile(rerouteTopicRegex);
 
-		String eventsSourceRegex = ".*Struct.*source=Struct.*table=events";
+		String eventsSourceRegex = ".*Struct.*source=Struct.*table=events.*";
 		replicationSourceFieldPattern = Pattern.compile(eventsSourceRegex);
 
 		log.info("eventsSourceRegex: {}", eventsSourceRegex);

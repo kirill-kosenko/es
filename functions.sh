@@ -104,9 +104,6 @@ function _connects-clean-restart() {
         && docker-compose stop connect_1 \
         && docker-compose rm -f connect_1 \
         && docker-compose up -d connect_1 \
-        && docker-compose stop connect_2 \
-        && docker-compose rm -f connect_2 \
-        && docker-compose up -d connect_2 \
     )
 
     sleep 5
